@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="apple-itunes-app" content="app-id=YOUR_APP_STORE_ID">
+    <meta name="apple-itunes-app" content="app-id=6743174968">
     <title>Opening Palasor...</title>
     <style>
         * {
@@ -91,25 +91,57 @@
             const APP_SCHEME = 'redrop://';
             const IOS_APP_STORE = 'https://apps.apple.com/app/id6743174968';
             const ANDROID_PLAY_STORE = 'https://play.google.com/store/apps/details?id=it.redrop.app';
-            const REDIRECT_TIMEOUT = 2000; // Time before auto-redirect to store
+            const REDIRECT_TIMEOUT = 2000;
+            const BASE_PATH = '/palasor'; // GitHub Pages repo name
             // ========================================
 
-            // Parse URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // Build deep link URL with parameters
-            function buildDeepLink() {
-                let path = urlParams.get('path') || 'main/friends';
+            // Get the screen path from URL
+            // Example: /palasor/chat → chat
+            // Example: /palasor/main/friends → main/friends
+            function getScreenPath() {
+                let path = window.location.pathname;
                 
-                const queryParams = new URLSearchParams();
-                for (const [key, value] of urlParams.entries()) {
-                    if (key !== 'path') {
-                        queryParams.append(key, value);
-                    }
+                // Remove base path (GitHub Pages repo name)
+                if (path.startsWith(BASE_PATH)) {
+                    path = path.substring(BASE_PATH.length);
                 }
                 
-                const queryString = queryParams.toString();
-                return APP_SCHEME + path + (queryString ? '?' + queryString : '');
+                // Remove leading slash
+                if (path.startsWith('/')) {
+                    path = path.substring(1);
+                }
+                
+                // Remove trailing slash
+                if (path.endsWith('/')) {
+                    path = path.slice(0, -1);
+                }
+                
+                // Remove .html extension if present
+                if (path.endsWith('.html')) {
+                    path = path.replace('.html', '');
+                }
+                
+                // If empty or index, default to main/home
+                if (!path || path === 'index') {
+                    path = 'main/home';
+                }
+                
+                // If single screen name, prefix with main/
+                if (!path.includes('/')) {
+                    path = 'main/' + path;
+                }
+                
+                return path;
+            }
+
+            // Build deep link URL
+            function buildDeepLink() {
+                const screenPath = getScreenPath();
+                const queryParams = window.location.search; // Includes the '?'
+                
+                const deepLink = APP_SCHEME + screenPath + queryParams;
+                console.log('Deep link:', deepLink);
+                return deepLink;
             }
 
             // Detect platform
@@ -127,8 +159,7 @@
 
             // Get store URL based on platform
             function getStoreUrl() {
-                const platform = getPlatform();
-                return platform === 'android' ? ANDROID_PLAY_STORE : IOS_APP_STORE;
+                return getPlatform() === 'android' ? ANDROID_PLAY_STORE : IOS_APP_STORE;
             }
 
             // Update status message
@@ -150,36 +181,32 @@
                 const platform = getPlatform();
                 
                 console.log('Platform:', platform);
-                console.log('Deep link:', deepLink);
+                console.log('Screen path:', getScreenPath());
 
-                // Track if we've left the page (app opened successfully)
+                // Track if app opened
                 let appOpened = false;
                 
-                // Listen for page visibility change
                 document.addEventListener('visibilitychange', function() {
                     if (document.hidden) {
                         appOpened = true;
                     }
                 });
 
-                // Also track blur (some browsers)
                 window.addEventListener('blur', function() {
                     appOpened = true;
                 });
 
                 // Try to open the app
                 if (platform === 'android') {
-                    // Android: Use intent URL for better reliability
                     const intentUrl = 'intent://' + deepLink.replace(APP_SCHEME, '') + 
                         '#Intent;scheme=redrop;package=it.redrop.app;S.browser_fallback_url=' + 
                         encodeURIComponent(ANDROID_PLAY_STORE) + ';end';
                     window.location.href = intentUrl;
                 } else {
-                    // iOS / Desktop: Use custom scheme
                     window.location.href = deepLink;
                 }
 
-                // Auto-redirect to store after timeout if app didn't open
+                // Auto-redirect to store after timeout
                 setTimeout(function() {
                     if (!appOpened && !document.hidden) {
                         redirectToStore();
