@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "2N3RZL8L42.it.redrop.app",
+        "paths": ["*"]
+      }
+    ]
+  }
+}
