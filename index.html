@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-itunes-app" content="app-id=YOUR_APP_STORE_ID">
+    <title>Opening Palasor...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+        }
+        
+        h1 {
+            color: #1a1a2e;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+        
+        p {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status {
+            color: #667eea;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚀</div>
+        <h1>Opening Palasor...</h1>
+        <div class="spinner"></div>
+        <p class="status" id="status">Redirecting you to the app...</p>
+    </div>
+
+    <script>
+        (function() {
+            // ============ CONFIGURATION ============
+            const APP_SCHEME = 'redrop://';
+            const IOS_APP_STORE = 'https://apps.apple.com/app/idYOUR_APP_STORE_ID';
+            const ANDROID_PLAY_STORE = 'https://play.google.com/store/apps/details?id=it.redrop.app';
+            const REDIRECT_TIMEOUT = 2000; // Time before auto-redirect to store
+            // ========================================
+
+            // Parse URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Build deep link URL with parameters
+            function buildDeepLink() {
+                let path = urlParams.get('path') || 'main/friends';
+                
+                const queryParams = new URLSearchParams();
+                for (const [key, value] of urlParams.entries()) {
+                    if (key !== 'path') {
+                        queryParams.append(key, value);
+                    }
+                }
+                
+                const queryString = queryParams.toString();
+                return APP_SCHEME + path + (queryString ? '?' + queryString : '');
+            }
+
+            // Detect platform
+            function getPlatform() {
+                const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+                
+                if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                    return 'ios';
+                }
+                if (/android/i.test(userAgent)) {
+                    return 'android';
+                }
+                return 'desktop';
+            }
+
+            // Get store URL based on platform
+            function getStoreUrl() {
+                const platform = getPlatform();
+                return platform === 'android' ? ANDROID_PLAY_STORE : IOS_APP_STORE;
+            }
+
+            // Update status message
+            function updateStatus(message) {
+                document.getElementById('status').textContent = message;
+            }
+
+            // Redirect to app store
+            function redirectToStore() {
+                updateStatus('App not found. Redirecting to store...');
+                setTimeout(function() {
+                    window.location.replace(getStoreUrl());
+                }, 500);
+            }
+
+            // Main redirect logic
+            function redirect() {
+                const deepLink = buildDeepLink();
+                const platform = getPlatform();
+                
+                console.log('Platform:', platform);
+                console.log('Deep link:', deepLink);
+
+                // Track if we've left the page (app opened successfully)
+                let appOpened = false;
+                
+                // Listen for page visibility change
+                document.addEventListener('visibilitychange', function() {
+                    if (document.hidden) {
+                        appOpened = true;
+                    }
+                });
+
+                // Also track blur (some browsers)
+                window.addEventListener('blur', function() {
+                    appOpened = true;
+                });
+
+                // Try to open the app
+                if (platform === 'android') {
+                    // Android: Use intent URL for better reliability
+                    const intentUrl = 'intent://' + deepLink.replace(APP_SCHEME, '') + 
+                        '#Intent;scheme=redrop;package=it.redrop.app;S.browser_fallback_url=' + 
+                        encodeURIComponent(ANDROID_PLAY_STORE) + ';end';
+                    window.location.href = intentUrl;
+                } else {
+                    // iOS / Desktop: Use custom scheme
+                    window.location.href = deepLink;
+                }
+
+                // Auto-redirect to store after timeout if app didn't open
+                setTimeout(function() {
+                    if (!appOpened && !document.hidden) {
+                        redirectToStore();
+                    }
+                }, REDIRECT_TIMEOUT);
+            }
+
+            // Start redirection immediately
+            redirect();
+        })();
+    </script>
+</body>
+</html>
