@@ -1,1 +1,1 @@
-Universal Link
+Universal Link for Palasor App
